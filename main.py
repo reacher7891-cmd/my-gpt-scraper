@@ -4,7 +4,6 @@ import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager # 길찾기 전문가를 불러옵니다
 import time
 
 # FastAPI 앱 생성
@@ -15,7 +14,7 @@ class ScrapeRequest(BaseModel):
     url: str
     table_index: int = 0
 
-# Selenium 웹 드라이버 설정 (서버 환경에 최적화)
+# Selenium 웹 드라이버 설정 (Docker 환경에 최적화)
 def get_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -24,8 +23,8 @@ def get_driver():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
     
-    # [수정된 부분] 주소를 하드코딩하는 대신, 전문가(webdriver-manager)가 알아서 드라이버를 찾아 설치하도록 합니다.
-    service = Service(ChromeDriverManager().install())
+    # Dockerfile에서 직접 설치한 드라이버의 경로를 지정합니다.
+    service = Service(executable_path="/usr/bin/chromedriver")
     
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
@@ -49,7 +48,7 @@ def get_table_from_url(request: ScrapeRequest):
         if request.table_index >= len(tables):
             raise HTTPException(status_code=404, detail=f"테이블을 찾을 수 없습니다. 해당 페이지에는 {len(tables)}개의 테이블만 존재합니다.")
 
-        df = tables[request.index]
+        df = tables[request.table_index]
         df = df.fillna('')
         df = df.astype(str)
         json_result = df.to_dict(orient='records')
@@ -66,4 +65,4 @@ def get_table_from_url(request: ScrapeRequest):
 
 @app.get("/")
 def read_root():
-    return {"message": "Selenium Scraper API v2 is running."}
+    return {"message": "Docker Selenium Scraper API is running."}
